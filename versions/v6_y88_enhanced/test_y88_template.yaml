@@ -1,0 +1,125 @@
+general_info:
+  type_template: DYNAMIC
+  xlr_folder: PFI/Y88_LoanIQ/TEST_PROJECT
+  iua: NXY88
+  appli_name: LoanIQ
+  phases:
+  - DEV
+  - PRODUCTION
+  name_release: NXY88_LOANIQ_CORE_TEMPLATE
+  SUN_approuver: nxy88.admin@company.com
+  technical_task_mode: string
+  template_package_mode: string
+  phase_mode: multi_list
+  option_latest: false
+  xld_group: true
+technical_task_list:
+  before_deployment:
+  - task_ops
+  - task_dba_other
+  before_xldeploy:
+  - task_ops
+  after_xldeploy:
+  - task_ops
+  - task_dba_other
+  - task_dba_factor
+  after_deployment:
+  - task_ops
+  - task_dba_factor
+template_liste_package:
+  App:
+    package_build_name: LoanIQ_app_7.6.2.1.<version>
+    controlm_mode: master
+    XLD_application_path: Applications/PFI/Y88_LOANIQ/APP/Y88_APP_LOANIQ_76/
+    XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/APP/<xld_prefix_env>Y88_APP_<XLD_env>_ENV
+    auto_undeploy: false
+    mode: CHECK_XLD
+  Scripts:
+    package_build_name: PKG_SCRIPTS-V7.6-<version>
+    controlm_mode: master
+    XLD_application_path: Applications/PFI/Y88_LOANIQ/APP/Y88_SCR_LOANIQ/
+    XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/SCR/<xld_prefix_env>Y88_SCR_<XLD_env>_ENV
+    auto_undeploy: false
+    mode: CHECK_XLD
+  SDK:
+    package_build_name: BUILD-SDK-76-V<version>
+    controlm_mode: master
+    XLD_application_path: Applications/PFI/Y88_LOANIQ/APP/Y88_SDK_LOANIQ/
+    XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/SDK/<xld_prefix_env>Y88_SDK_<XLD_env>_ENV
+    auto_undeploy:
+    - App
+    mode: CHECK_XLD
+jenkins:
+  jenkinsServer: Configuration/Custom/Jenkins-Y88
+  taskType: jenkins.Build
+  username: nxy88_jenkins@company.com
+  apiToken: ${apiToken_jenkins_iua}
+  valueapiToken: 11a474dedca78e202f62f82c6544eb7778
+  password: null
+  jenkinsjob:
+    App:
+      jobName: Y88/job/Projet_y88-loaniq-Package
+      parameters:
+      - BRANCH_NAME=${App_version}
+      precondition: None
+    Scripts:
+      jobName: Y88/job/y88-loaniq-scripts-7.6-Pipeline
+      parameters:
+      - BRANCH_NAME=${Scripts_version}
+      precondition: None
+    SDK:
+      jobName: Y88/job/y88-sdk-foundation-7.6-Pipeline
+      parameters:
+      - BRANCH_NAME=${SDK_version}
+      precondition: None
+XLD_ENV_DEV:
+- DEV_01
+- DEV_02
+- DEV_03
+XLD_ENV_PRODUCTION:
+- PRD_01
+variable_release:
+  Date: true
+  Version: true
+  Environment: true
+Phases:
+  DEV:
+  - seq_xldeploy:
+      XLD App:
+      - App
+  - seq_xldeploy:
+      XLD Scripts:
+      - Scripts
+  - seq_xldeploy:
+      XLD SDK:
+      - SDK
+  PRODUCTION:
+  - XLR_task_controlm:
+      STOP LOANIQ:
+        type_group: SequentialGroup
+        folder:
+          PDCP_OSTOP_PY88_XLR:
+            hold: true
+            case:
+            - App
+            - Scripts
+            - SDK
+  - seq_xldeploy:
+      XLD App:
+      - App
+  - seq_xldeploy:
+      XLD Scripts:
+      - Scripts
+  - seq_xldeploy:
+      XLD SDK:
+      - SDK
+  - XLR_task_controlm:
+      START LOANIQ:
+        type_group: SequentialGroup
+        folder:
+          PDCP_OSTART_PY88_XLR:
+            hold: true
+            case:
+            - Scripts
+            - SDK
+            - App

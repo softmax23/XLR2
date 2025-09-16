@@ -1,0 +1,55 @@
+# XLR Configuration File - Example
+# Copy this file to config.yaml and update with your actual values
+
+# XLR API Configuration
+xlr_api:
+  url: "https://your-xlr-server/api/v1/"
+  username: "your-username"
+  password: "your-password"
+
+# Control-M Configuration
+controlm:
+  api_url: "https://your-controlm-server/api/"
+  production_environment: "PROD_CTM"
+  bench_environment: "BENCH_CTM"
+
+# ServiceNow Configuration (if applicable)
+servicenow:
+  api_url: "https://your-servicenow-instance.service-now.com/api/"
+  username: "servicenow-username"
+  password: "servicenow-password"
+
+# Environment-specific credentials
+environments:
+  # Development environment
+  dev:
+    controlm:
+      username: "dev_controlm_user"
+      password: "dev_controlm_password"
+    xlr:
+      username: "dev_xlr_user"
+      password: "dev_xlr_password"
+
+  # Test environment
+  test:
+    controlm:
+      username: "test_controlm_user"
+      password: "test_controlm_password"
+    xlr:
+      username: "test_xlr_user"
+      password: "test_xlr_password"
+
+  # Production environment
+  prod:
+    controlm:
+      username: "prod_controlm_user"
+      password: "prod_controlm_password"
+    xlr:
+      username: "prod_xlr_user"
+      password: "prod_xlr_password"
+
+# Security settings
+security:
+  verify_ssl: false
+  timeout: 30
+  max_retries: 3

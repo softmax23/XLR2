@@ -1,0 +1,59 @@
+# XLR Template Creator V5 - Configuration Example
+# Copy this file to config.yaml and modify with your settings
+
+# XLR Server Configuration
+xlr:
+  # XLR API URL
+  url_api_xlr: "https://your-xlr-server/api/v1/"
+
+  # XLR Base URL (for template URLs)
+  xlr_base_url: "https://your-xlr-server/"
+
+  # API Credentials
+  ops_username_api: "admin"
+  ops_password_api: "admin"
+
+  # Connection settings
+  timeout: 30
+  verify_ssl: false
+
+# Logging Configuration
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # Log file settings
+  max_file_size: 10485760  # 10MB
+  backup_count: 5
+
+# Template Creation Settings
+template:
+  # Default colors for phases
+  phase_colors:
+    BUILD: "#1f77b4"
+    DEV: "#ff7f0e"
+    UAT: "#2ca02c"
+    BENCH: "#d62728"
+    PRODUCTION: "#9467bd"
+
+  # Default settings
+  default_timeout: 300
+  max_retries: 3
+
+# Features Configuration
+features:
+  # Enable/disable specific features
+  enable_y88_logic: true
+  enable_controlm_integration: true
+  enable_servicenow_integration: true
+  enable_jenkins_integration: true
+
+  # Validation settings
+  strict_yaml_validation: true
+  validate_folders: true
+
+# Development Settings (only for development/testing)
+development:
+  debug_mode: false
+  mock_api_calls: false
+  save_api_responses: false

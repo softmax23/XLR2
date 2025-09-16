@@ -76,6 +76,8 @@ python3 src/core/DYNAMIC_template_enhanced.py --infile src/config/template.yaml
 ### 🔧 **Fonctionnalités**
 - **Validation des paramètres** : Vérification des entrées
 - **Configuration modulaire** : Setup séparé par service
+- **Phases dynamiques** : Création automatique de phases conditionnelles via `create_dynamic_phase`
+- **Templates dynamiques** : Support complet pour `type_template: DYNAMIC`
 - **Méthodes privées** : Encapsulation de la logique interne
 - **Context managers** : Gestion automatique des ressources
 
@@ -91,7 +93,7 @@ python3 src/core/DYNAMIC_template_enhanced.py --infile src/config/template.yaml
 |--------|---------------|---------|
 | `XLRGeneric` | Opérations génériques XLR | `xlr_generic.py` |
 | `XLRControlm` | Intégration Control-M | `xlr_controlm.py` |
-| `XLRDynamicPhase` | Gestion phases dynamiques | `xlr_dynamic_phase.py` |
+| `XLRDynamicPhase` | **Gestion phases dynamiques, création/suppression conditionnelle** | `xlr_dynamic_phase.py` |
 | `XLRSun` | Intégration ServiceNow | `xlr_sun.py` |
 | `XLRTaskScript` | Scripts et automatisation | `xlr_task_script.py` |
 
@@ -111,10 +113,45 @@ xlr = XLRGeneric()
 ### Depuis v2 (Enhanced)
 Les améliorations v2 sont intégrées + modularité en plus.
 
+## Templates Dynamiques
+
+### Configuration YAML
+Pour activer les phases dynamiques, ajoutez dans votre `template.yaml` :
+```yaml
+general_info:
+  type_template: DYNAMIC
+  # ... autres paramètres
+```
+
+### Fonctionnement
+Quand `type_template: DYNAMIC` est détecté :
+1. **Création automatique** d'une phase "dynamic_release"
+2. **Scripts Jython intégrés** pour :
+   - Suppression des phases non sélectionnées (`script_jython_delete_phase_inc`)
+   - Définition des préfixes XLD multi-bench (`script_jython_define_xld_prefix_new`)
+3. **Gestion conditionnelle** des déploiements selon les sélections utilisateur
+
+### Méthodes disponibles
+```python
+xlr_dynamic_phase = XLRDynamicPhase()
+
+# Création de phase dynamique
+phase_id = xlr_dynamic_phase.create_dynamic_phase(
+    phase_name="dynamic_release",
+    phase_config={'color': '#FD8A00', 'description': '...'},
+    parent_id=template_id
+)
+
+# Scripts Jython intégrés
+xlr_dynamic_phase.script_jython_delete_phase_inc('dynamic_release')
+xlr_dynamic_phase.script_jython_define_xld_prefix_new('dynamic_release')
+```
+
 ## Compatibilité
 - ✅ **Template.yaml** : Compatible avec la configuration existante
 - ✅ **API XLR** : Même interface API
 - ✅ **Logique métier** : Préservation de tous les workflows
 - ✅ **Migration facile** : Changement minimal du code existant
+- ✅ **Templates dynamiques** : Support natif pour les phases conditionnelles
 
 **Status :** 🟢 Recommandé - Architecture moderne et maintenable

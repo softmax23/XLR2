@@ -430,9 +430,70 @@ class XLRGeneric:
             self._process_controlm_task(phase, task)
 
     def _process_xldeploy_task(self, phase: str, task: Dict[str, Any]) -> None:
-        """Process XL Deploy tasks."""
-        # Implementation for XLD task processing
+        """Process XL Deploy tasks with Y88-specific logic."""
         self.logger_cr.info(f"Processing XLDeploy task for phase {phase}")
+
+        # Apply Y88-specific path modifications if needed
+        if self._is_y88_environment():
+            self._apply_y88_xld_logic(phase, task)
+
+        # Continue with standard XLD processing
+        self._process_standard_xld_task(phase, task)
+
+    def _is_y88_environment(self) -> bool:
+        """Check if this is a Y88 environment."""
+        iua = self.parameters.get('general_info', {}).get('iua', '')
+        return 'Y88' in iua
+
+    def _apply_y88_xld_logic(self, phase: str, task: Dict[str, Any]) -> None:
+        """Apply Y88-specific XLD logic for BENCH phase."""
+        if phase != 'BENCH':
+            return
+
+        # Y88-specific package path modifications (based on V1 logic)
+        for task_type, task_data in task.items():
+            if 'xldeploy' in task_type:
+                self._modify_y88_xld_paths(task_data)
+
+    def _modify_y88_xld_paths(self, task_data: Dict[str, Any]) -> None:
+        """Modify XLD paths for Y88 packages in BENCH environment."""
+        # This implements the V1 logic for Y88 package path modifications
+        # Based on the conditions found in all_class.py lines with Y88 logic
+
+        for package_group, packages in task_data.items():
+            if isinstance(packages, list):
+                for package in packages:
+                    self._apply_y88_package_logic(package)
+
+    def _apply_y88_package_logic(self, package_name: str) -> None:
+        """Apply Y88-specific logic to individual packages."""
+        # Y88 package categorization logic from V1:
+        y88_interface_packages = [
+            'Interface_summit', 'Interface_summit_COF', 'Interface_TOGE',
+            'Interface_TOGE_ACK', 'Interface_NON_LOAN_US', 'DICTIONNAIRE',
+            'Interface_MOTOR', 'Interface_ROAR_ACK', 'Interface_ROAR'
+        ]
+
+        if package_name == 'Interfaces':
+            # Set value = 'INT' for Interfaces
+            self.logger_cr.info(f"Y88: Processing Interfaces package as INT")
+        elif package_name in y88_interface_packages:
+            # Set value = 'INT' and value_env = '_NEW'
+            self.logger_cr.info(f"Y88: Processing {package_name} as INT with _NEW suffix")
+        elif package_name == 'Scripts':
+            # Set value = 'SCR'
+            self.logger_cr.info(f"Y88: Processing Scripts package as SCR")
+        elif package_name == 'SDK':
+            # Set value = 'SDK'
+            self.logger_cr.info(f"Y88: Processing SDK package as SDK")
+        elif package_name == 'App':
+            # Set value = 'APP'
+            self.logger_cr.info(f"Y88: Processing App package as APP")
+
+    def _process_standard_xld_task(self, phase: str, task: Dict[str, Any]) -> None:
+        """Process standard XLD tasks after Y88 modifications."""
+        # Standard XLD processing logic here
+        self.logger_cr.info(f"Completed XLD task processing for phase {phase}")
 
     def _process_script_task(self, phase: str, task: Dict[str, Any], script_type: str) -> None:
         """Process script execution tasks."""

@@ -1,0 +1,402 @@
+# Y88 LoanIQ Complete Template - V6 Generated
+# This template includes all Y88 LoanIQ components and interfaces
+
+general_info:
+    type_template: DYNAMIC
+    xlr_folder: PFI/Y88_LoanIQ/LOANIQ_COMPLETE
+    iua: NXY88
+    appli_name: LoanIQ
+    phases:
+        - DEV
+        - UAT
+        - BENCH
+        - PRODUCTION
+    name_release: "NXY88_LOANIQ_FULL_TEMPLATE"
+    SUN_approuver: nxy88.admin@company.com
+    technical_task_mode: string
+    template_package_mode: string
+    phase_mode: multi_list
+    option_latest: false
+    xld_group: true
+
+# Complete technical tasks for Y88
+technical_task_list:
+    before_deployment:
+        - task_ops
+        - task_dba_other
+    before_xldeploy:
+        - task_ops
+    after_xldeploy:
+        - task_ops
+        - task_dba_other
+        - task_dba_factor
+    after_deployment:
+        - task_ops
+        - task_dba_factor
+
+# Complete Y88 LoanIQ package set
+template_liste_package:
+    App:
+        package_build_name: LoanIQ_app_7.6.2.1.<version>
+        controlm_mode: master
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/APP/Y88_APP_LOANIQ_76/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/APP/<xld_prefix_env>Y88_APP_<XLD_env>_ENV
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    Scripts:
+        package_build_name: PKG_SCRIPTS-V7.6-<version>
+        controlm_mode: master
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/APP/Y88_SCR_LOANIQ/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/SCR/<xld_prefix_env>Y88_SCR_<XLD_env>_ENV
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    SDK:
+        package_build_name: BUILD-SDK-76-V<version>
+        controlm_mode: master
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/APP/Y88_SDK_LOANIQ/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/SDK/<xld_prefix_env>Y88_SDK_<XLD_env>_ENV
+        auto_undeploy:
+            - App
+        mode: CHECK_XLD
+
+    Interfaces:
+        package_build_name: BUILD-76-V<version>
+        controlm_mode: Independant
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/Y88_INT_LOANIQ/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    Interface_summit:
+        package_build_name: Y88_INTERFACE_SUMMIT_BUILD-V<version>
+        controlm_mode: Independant
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/Interface_summit/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV_NEW
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    Interface_summit_COF:
+        package_build_name: Y88_INTERFACE_SUMMIT_COF_BUILD-V<version>
+        controlm_mode: Independant
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/Interface_summit_COF/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV_NEW
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    Interface_TOGE:
+        package_build_name: Y88_INTERFACE_TOGE_BUILD-V<version>
+        controlm_mode: Independant
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/Interface_TOGE/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV_NEW
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    Interface_TOGE_ACK:
+        package_build_name: Y88_INTERFACE_TOGE_ACK_BUILD-V<version>
+        controlm_mode: Independant
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/Interface_TOGE_ACK/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV_NEW
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    Interface_NON_LOAN_US:
+        package_build_name: Y88_INTERFACE_NON_LOAN_US_BUILD-V<version>
+        controlm_mode: Independant
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/Interface_NON_LOAN_US/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV_NEW
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    Interface_MOTOR:
+        package_build_name: Y88_INTERFACE_MOTOR_BUILD-V<version>
+        controlm_mode: Independant
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/Interface_MOTOR/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV_NEW
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    Interface_ROAR:
+        package_build_name: Y88_INTERFACE_ROAR_BUILD-V<version>
+        controlm_mode: Independant
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/Interface_ROAR/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV_NEW
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    Interface_ROAR_ACK:
+        package_build_name: Y88_INTERFACE_ROAR_ACK_BUILD-V<version>
+        controlm_mode: Independant
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/Interface_ROAR_ACK/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV_NEW
+        auto_undeploy: false
+        mode: CHECK_XLD
+
+    DICTIONNAIRE:
+        package_build_name: Y88_DICTIONARIES_BUILD-V<version>
+        XLD_application_path: Applications/PFI/Y88_LOANIQ/INT/DICTIONNAIRE/
+        XLD_environment_path: Environments/PFI/Y88_LOANIQ/7.6/<ENV>/<ENV>/<XLD_env>/INT/<xld_prefix_env>Y88_INT_<XLD_env>_ENV_NEW
+        auto_undeploy: false
+        controlm_mode: Independant
+        mode: name_from_jenkins
+
+# Y88 Jenkins configuration
+jenkins:
+    jenkinsServer: Configuration/Custom/Jenkins-Y88
+    taskType: jenkins.Build
+    username: nxy88_jenkins@company.com
+    apiToken: ${apiToken_jenkins_iua}
+    valueapiToken: 11a474dedca78e202f62f82c6544eb7778
+    password:
+    jenkinsjob:
+        App:
+            jobName: Y88/job/Projet_y88-loaniq-Package
+            parameters:
+                - BRANCH_NAME=${App_version}
+            precondition: None
+
+        Scripts:
+            jobName: Y88/job/y88-loaniq-scripts-7.6-Pipeline
+            parameters:
+                - BRANCH_NAME=${Scripts_version}
+            precondition: None
+
+        SDK:
+            jobName: Y88/job/y88-sdk-foundation-7.6-Pipeline
+            parameters:
+                - BRANCH_NAME=${SDK_version}
+            precondition: None
+
+        Interfaces:
+            jobName: Y88/job/Y88-Interface-7.6-Pipeline
+            parameters:
+                - BRANCH_NAME=${Interfaces_version}
+            precondition: None
+
+        Interface_summit:
+            jobName: Y88/job/Interface/job/Y88_INTERFACE_SUMMIT
+            parameters:
+                - BRANCH_NAME=${Interface_summit_version}
+            precondition: None
+
+        Interface_summit_COF:
+            jobName: Y88/job/Interface/job/Y88_INTERFACE_SUMMIT_COF
+            parameters:
+                - BRANCH_NAME=${Interface_summit_COF_version}
+            precondition: None
+
+        Interface_TOGE:
+            jobName: Y88/job/Interface/job/TOGE
+            parameters:
+                - BRANCH_NAME=${Interface_TOGE_version}
+            precondition: None
+
+        Interface_TOGE_ACK:
+            jobName: Y88/job/Interface/job/TOGE_ACK
+            parameters:
+                - BRANCH_NAME=${Interface_TOGE_ACK_version}
+            precondition: None
+
+        Interface_NON_LOAN_US:
+            jobName: Y88/job/Interface/job/Y88_INTERFACE_NON_LOAN
+            parameters:
+                - BRANCH_NAME=${Interface_NON_LOAN_US_version}
+            precondition: None
+
+        Interface_MOTOR:
+            jobName: Y88/job/Interface/job/MOTOR
+            parameters:
+                - BRANCH_NAME=${Interface_MOTOR_version}
+            precondition: None
+
+        Interface_ROAR:
+            jobName: Y88/job/Interface/job/ROAR
+            parameters:
+                - BRANCH_NAME=${Interface_ROAR_version}
+            precondition: None
+
+        Interface_ROAR_ACK:
+            jobName: Y88/job/Interface/job/ROAR_ACK
+            parameters:
+                - BRANCH_NAME=${Interface_ROAR_ACK_version}
+            precondition: None
+
+        DICTIONNAIRE:
+            jobName: Y88/job/Other/job/Y88-Dictionaries/
+            parameters:
+                - VARIABLE_XLR_ID
+            precondition: None
+
+# Y88 Environment configurations
+XLD_ENV_DEV:
+    - DEV_01
+    - DEV_02
+    - DEV_03
+
+XLD_ENV_UAT:
+    - UAT_01
+    - UAT_02
+    - UAT_03
+
+XLD_ENV_BENCH:
+    - MCO;Q
+    - PRJ;B
+
+XLD_ENV_PRODUCTION:
+    - PRD_01
+
+# Variable release configuration with Y88 enhancements
+variable_release:
+    Date: true
+    Version: true
+    Environment: true
+    BENCH_Y88: true
+
+# Complete Y88 phases configuration
+Phases:
+    DEV:
+        - seq_xldeploy:
+            XLD App:
+                - App
+        - seq_xldeploy:
+            XLD Scripts:
+                - Scripts
+        - seq_xldeploy:
+            XLD SDK:
+                - SDK
+        - seq_xldeploy:
+            XLD Interfaces:
+                - Interfaces
+        - seq_xldeploy:
+            XLD Interface_summit:
+                - Interface_summit
+        - seq_xldeploy:
+            XLD Interface_summit_COF:
+                - Interface_summit_COF
+        - seq_xldeploy:
+            XLD Interface_TOGE:
+                - Interface_TOGE
+        - seq_xldeploy:
+            XLD Interface_TOGE_ACK:
+                - Interface_TOGE_ACK
+        - seq_xldeploy:
+            XLD Interface_NON_LOAN_US:
+                - Interface_NON_LOAN_US
+        - seq_xldeploy:
+            XLD Interface_MOTOR:
+                - Interface_MOTOR
+        - seq_xldeploy:
+            XLD Interface_ROAR:
+                - Interface_ROAR
+        - seq_xldeploy:
+            XLD Interface_ROAR_ACK:
+                - Interface_ROAR_ACK
+
+    UAT:
+        - seq_xldeploy:
+            XLD App:
+                - App
+        - seq_xldeploy:
+            XLD Scripts:
+                - Scripts
+        - seq_xldeploy:
+            XLD SDK:
+                - SDK
+        - seq_xldeploy:
+            XLD Interfaces:
+                - Interfaces
+        - seq_xldeploy:
+            XLD Interface_summit:
+                - Interface_summit
+        - seq_xldeploy:
+            XLD Interface_summit_COF:
+                - Interface_summit_COF
+        - seq_xldeploy:
+            XLD Interface_TOGE:
+                - Interface_TOGE
+        - seq_xldeploy:
+            XLD Interface_TOGE_ACK:
+                - Interface_TOGE_ACK
+        - seq_xldeploy:
+            XLD Interface_NON_LOAN_US:
+                - Interface_NON_LOAN_US
+        - seq_xldeploy:
+            XLD Interface_MOTOR:
+                - Interface_MOTOR
+        - seq_xldeploy:
+            XLD Interface_ROAR:
+                - Interface_ROAR
+        - seq_xldeploy:
+            XLD Interface_ROAR_ACK:
+                - Interface_ROAR_ACK
+
+    BENCH:
+        # ControlM STOP tasks
+        - XLR_task_controlm_tasks:
+                - Y88_FOLDER_APP-App
+                - Y88_FOLDER_SDK-SDK
+                - Y88_FOLDER_SCR-Scripts
+                - Y88_FOLDER_INT-Interfaces
+
+        # XLD deployments
+        - seq_xldeploy:
+            XLD App:
+                - App
+        - seq_xldeploy:
+            XLD Scripts:
+                - Scripts
+        - seq_xldeploy:
+            XLD SDK:
+                - SDK
+        - seq_xldeploy:
+            XLD Interfaces:
+                - Interfaces
+        - seq_xldeploy:
+            XLD Interface_summit:
+                - Interface_summit
+        - seq_xldeploy:
+            XLD Interface_summit_COF:
+                - Interface_summit_COF
+
+        # ControlM START tasks
+        - XLR_task_controlm_tasks:
+                - Y88_FOLDER_APP-App
+                - Y88_FOLDER_SDK-SDK
+                - Y88_FOLDER_SCR-Scripts
+                - Y88_FOLDER_INT-Interfaces
+
+    PRODUCTION:
+        # ControlM STOP tasks
+        - XLR_task_controlm_tasks:
+                - Y88_PROD_FOLDER_APP-App
+                - Y88_PROD_FOLDER_SDK-SDK
+                - Y88_PROD_FOLDER_SCR-Scripts
+                - Y88_PROD_FOLDER_INT-Interfaces
+
+        # XLD deployments
+        - seq_xldeploy:
+            XLD App:
+                - App
+        - seq_xldeploy:
+            XLD Scripts:
+                - Scripts
+        - seq_xldeploy:
+            XLD SDK:
+                - SDK
+        - seq_xldeploy:
+            XLD Interfaces:
+                - Interfaces
+        - seq_xldeploy:
+            XLD Interface_summit:
+                - Interface_summit
+        - seq_xldeploy:
+            XLD Interface_summit_COF:
+                - Interface_summit_COF
+
+        # ControlM START tasks
+        - XLR_task_controlm_tasks:
+                - Y88_PROD_FOLDER_APP-App
+                - Y88_PROD_FOLDER_SDK-SDK
+                - Y88_PROD_FOLDER_SCR-Scripts
+                - Y88_PROD_FOLDER_INT-Interfaces
