@@ -26,22 +26,15 @@ import yaml
 import sys
 import os
 import logging
-from pathlib import Path
 from typing import Dict, Any
 
-# Import V5 core modules (V7 inherits V5 functionality)
-sys.path.insert(0, str(Path(__file__).parent / '..' / 'v5_complete'))
+# Import V7 Pure core modules
 from src.core.xlr_generic import XLRGeneric
 from src.core.xlr_controlm import XLRControlm
-from src.core.xlr_dynamic_phase import XLRDynamicPhase
 from src.core.xlr_sun import XLRSun
 from src.core.xlr_task_script import XLRTaskScript
-from src.config.config_loader import ConfigLoader
-from src.utils.yaml_validator import YamlValidator
-from src.utils.logger_setup import setup_logger, setup_logger_error, setup_logger_detail
 
-
-class XLRCreateTemplateV7(XLRGeneric, XLRSun, XLRTaskScript, XLRControlm, XLRDynamicPhase):
+class XLRCreateTemplateV7(XLRGeneric, XLRControlm, XLRSun, XLRTaskScript):
     """
     V7 Pure XLR Template Creation class - Clean and focused.
 
@@ -60,37 +53,8 @@ class XLRCreateTemplateV7(XLRGeneric, XLRSun, XLRTaskScript, XLRControlm, XLRDyn
         Args:
             parameters: YAML configuration parameters
         """
-        # Load configuration
-        self.config = ConfigLoader()
-
-        # Set up API headers
-        self.header = {
-            'content-type': 'application/json',
-            'Accept': 'application/json'
-        }
-
-        # Store parameters
-        self.parameters = parameters
-
-        # Create logging directories
-        self._setup_logging()
-
-        # Initialize tracking lists
-        self.list_technical_task_done = []
-        self.list_technical_sun_task_done = []
-        self.list_xlr_group_task_done = []
-
-        # Initialize template URL and dictionaries
-        self.template_url = ''
-        self.dic_for_check = {}
-        self.dict_template = {}
-
-        # Initialize counters
-        self.count_task = 10
-
-        # Validate YAML file
-        validator = YamlValidator(parameters)
-        validator.validate()
+        # Initialize parent classes
+        super().__init__(parameters)
 
         # Clear screen and start logging
         os.system('clear')
@@ -100,19 +64,32 @@ class XLRCreateTemplateV7(XLRGeneric, XLRSun, XLRTaskScript, XLRControlm, XLRDyn
         self.logger_cr.info("=" * 60)
         self.logger_cr.info("")
 
-        # Initialize parent classes
-        super().__init__(parameters)
 
     def _setup_logging(self) -> None:
         """Set up clean logging for V7."""
-        release_name = self.parameters['general_info']['name_release']
-        log_dir = Path(f'log/{release_name}')
-        log_dir.mkdir(parents=True, exist_ok=True)
+        # Simple logging setup
+        log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
-        # Create clean loggers
-        self.logger_cr = setup_logger('LOG_CR', str(log_dir / 'CR.log'))
-        self.logger_detail = setup_logger_detail('LOG_INFO', str(log_dir / 'info.log'))
-        self.logger_error = setup_logger_error('LOG_ERROR', str(log_dir / 'error.log'))
+        # Creation logger
+        self.logger_cr = logging.getLogger('xlr_creation')
+        self.logger_cr.setLevel(logging.INFO)
+        ch_cr = logging.StreamHandler()
+        ch_cr.setFormatter(logging.Formatter(log_format))
+        self.logger_cr.addHandler(ch_cr)
+
+        # Detail logger
+        self.logger_detail = logging.getLogger('xlr_detail')
+        self.logger_detail.setLevel(logging.DEBUG)
+        ch_detail = logging.StreamHandler()
+        ch_detail.setFormatter(logging.Formatter(log_format))
+        self.logger_detail.addHandler(ch_detail)
+
+        # Error logger
+        self.logger_error = logging.getLogger('xlr_error')
+        self.logger_error.setLevel(logging.ERROR)
+        ch_error = logging.StreamHandler()
+        ch_error.setFormatter(logging.Formatter(log_format))
+        self.logger_error.addHandler(ch_error)
 
     def create_template(self) -> str:
         """
@@ -135,7 +112,7 @@ class XLRCreateTemplateV7(XLRGeneric, XLRSun, XLRTaskScript, XLRControlm, XLRDyn
 
             # Step 3: Create template
             self.logger_cr.info("Step 3: Creating template...")
-            self.dict_template, self.XLR_template_id = self.CreateTemplate()
+            self.CreateTemplate()
 
             # Step 4: Create phase environment variables
             self.logger_cr.info("Step 4: Creating phase environment variables...")
@@ -145,9 +122,9 @@ class XLRCreateTemplateV7(XLRGeneric, XLRSun, XLRTaskScript, XLRControlm, XLRDyn
             self.logger_cr.info("Step 5: Creating core template variables...")
             self._create_core_variables()
 
-            # Step 6: Create dynamic phase
-            self.logger_cr.info("Step 6: Creating dynamic phase...")
-            self.dynamics_phase_done = self.dynamic_phase_dynamic()
+            # Step 6: Create template variables
+            self.logger_cr.info("Step 6: Creating template variables...")
+            # Skip dynamic phase creation for V7 Pure (simplified)
 
             # Step 7: Create API and system variables
             self.logger_cr.info("Step 7: Creating API and system variables...")
@@ -254,21 +231,18 @@ class XLRCreateTemplateV7(XLRGeneric, XLRSun, XLRTaskScript, XLRControlm, XLRDyn
         """Create core template variables - V7 Pure."""
         self.logger_cr.info("Creating core variables...")
 
-        # Generate template values
-        self.dict_value_for_template = self.dict_value_for_tempalte()
-
         # Define variable type for template
         self.define_variable_type_template_DYNAMIC()
 
-        # Create the critical release_Variables_in_progress variable
+        # Create basic release variables
         self.template_create_variable(
-            key='release_Variables_in_progress',
-            typev='MapStringStringVariable',
-            label='release_Variables_in_progress',
-            description='',
-            value=self.release_Variables_in_progress,
-            requiresValue=False,
-            showOnReleaseStart=False,
+            key='release_name',
+            typev='StringVariable',
+            label='Release Name',
+            description='Name of the release',
+            value=self.parameters['general_info']['name_release'],
+            requiresValue=True,
+            showOnReleaseStart=True,
             multiline=False
         )
 
@@ -344,7 +318,7 @@ class XLRCreateTemplateV7(XLRGeneric, XLRSun, XLRTaskScript, XLRControlm, XLRDyn
 
         # Set template URL
         if hasattr(self, 'XLR_template_id'):
-            base_url = self.config.get('xlr_base_url', self.url_api_xlr.replace('/api/v1/', ''))
+            base_url = self.url_api_xlr.replace('/api/v1/', '')
             self.template_url = f"{base_url}#/templates/{self.XLR_template_id}"
 
         self.logger_cr.info("Template finalized successfully")
