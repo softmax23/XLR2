@@ -231,7 +231,7 @@ class XLRGeneric(XLRBase):
                                         if phase != 'DEV' and phase != 'UAT':
                                             task_to_close = '${' + self.dict_value_for_template_technical_task['technical_task'][cat_technicaltask][technical_task]['xlr_sun_task_variable_name'] + "_" + phase + '}'
                                             if hasattr(self, 'XLRSun_task_close_sun_task'):
-                                                self.XLRSun_task_close_sun_task(task_to_close, task_to_close, self.grp_id, 'task_ops', phase)
+                                                self.XLRSun_task_close_sun_task(task_to_close, f"Close task {technical_task}", self.grp_id, 'task_ops', phase)
 
         self.list_technical_task_done.append(cat_technicaltask + '_done_' + phase)
 

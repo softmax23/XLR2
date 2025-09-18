@@ -597,3 +597,635 @@ class XLRBase:
             self.logger_error.error("Error call api : " + url_gate_task)
             self.logger_error.error(e)
             sys.exit(0)
+
+    def add_task_xldeploy(self, xld_value, phase, precondition, grp_id_xldeploy):
+        """
+        Add XL Deploy task for package deployment.
+
+        Args:
+            xld_value (list): XLD configuration values [package_name, ...]
+            phase (str): Phase name
+            precondition (str): Task precondition
+            grp_id_xldeploy (str): XLD group task ID
+
+        Creates XL Deploy tasks for automated deployment of packages.
+        """
+        if xld_value and len(xld_value) > 0:
+            package_name = xld_value[0]
+            self.add_task_xldeploy_auto(package_name, phase, grp_id_xldeploy)
+
+    def add_task_xldeploy_auto(self, package_xld, phase, grp_id_xldeploy):
+        """
+        Create automated XL Deploy task for package deployment.
+
+        Args:
+            package_xld (str): Package name to deploy
+            phase (str): Phase name (DEV, UAT, BENCH, PRODUCTION)
+            grp_id_xldeploy (str): XLD group task ID
+
+        Creates XLD deployment task with environment-specific configuration.
+        """
+        import requests
+
+        # Environment-specific XLD configuration
+        if phase == 'DEV':
+            xld_prefix_env = 'D'
+            if hasattr(self, 'parameters') and self.parameters.get('XLD_ENV_DEV') is not None:
+                xld_env = '${env_' + phase + '}'
+            elif hasattr(self, 'parameters') and self.parameters.get('general_info', {}).get('xld_standard'):
+                xld_env = '10-DEV'
+                xld_directory_env = 'DEV'
+            else:
+                xld_env = 'DEV'
+            xld_directory_env = 'DEV'
+        elif phase == 'UAT':
+            xld_prefix_env = 'U'
+            if hasattr(self, 'parameters') and self.parameters.get('XLD_ENV_UAT') is not None:
+                xld_env = '${env_' + phase + '}'
+            elif hasattr(self, 'parameters') and self.parameters.get('general_info', {}).get('xld_standard'):
+                xld_env = '30-UAT'
+                xld_directory_env = 'UAT'
+            else:
+                xld_env = 'UAT'
+            xld_directory_env = 'UAT'
+        elif phase == 'BENCH':
+            if hasattr(self, 'parameters') and self.parameters.get('XLD_ENV_BENCH') is not None and len(self.parameters['XLD_ENV_BENCH']) > 1:
+                xld_prefix_env = "${controlm_prefix_BENCH}"
+            elif hasattr(self, 'parameters') and 'NXFFA' in self.parameters.get('general_info', {}).get('iua', ''):
+                xld_prefix_env = 'Q'
+            else:
+                xld_prefix_env = 'B'
+            if hasattr(self, 'parameters') and self.parameters.get('XLD_ENV_BENCH') is not None:
+                xld_env = '${env_' + phase + '}'
+            elif hasattr(self, 'parameters') and self.parameters.get('general_info', {}).get('xld_standard'):
+                xld_env = '40-BENCH'
+                xld_directory_env = 'BCH'
+            else:
+                xld_env = 'BCH'
+            xld_directory_env = 'BCH'
+        elif phase == 'PRODUCTION':
+            xld_prefix_env = 'P'
+            if hasattr(self, 'parameters') and self.parameters.get('XLD_ENV_PRODUCTION') is not None:
+                xld_env = '${env_' + phase + '}'
+            elif hasattr(self, 'parameters') and self.parameters.get('general_info', {}).get('xld_standard'):
+                xld_env = '50-PROD'
+                xld_directory_env = 'PRD'
+            else:
+                xld_env = 'PRD'
+            xld_directory_env = 'PRD'
+        else:
+            xld_prefix_env = 'D'
+            xld_env = phase
+            xld_directory_env = phase
+
+        # Find package configuration
+        package_value = package_xld
+        if hasattr(self, 'parameters') and 'template_liste_package' in self.parameters:
+            for pkg in self.parameters['template_liste_package']:
+                if package_xld in pkg:
+                    package_value = pkg
+                    break
+
+        # Determine deployment paths
+        if hasattr(self, 'parameters') and 'Y88' in self.parameters.get('general_info', {}).get('iua', '') and phase == 'BENCH':
+            value_env = ''
+            if package_xld == 'Interfaces':
+                value = 'INT'
+            elif package_xld == 'Scripts':
+                value = 'SCR'
+            elif package_xld == 'SDK':
+                value = 'SDK'
+            elif package_xld == 'App':
+                value = 'APP'
+            else:
+                value = 'APP'
+            tempo_XLD_environment_path = 'Environments/PFI/Y88_LOANIQ/7.6/<ENV>/${BENCH_Y88}/${BENCH_Y88}_01/' + value + '/<xld_prefix_env>Y88_' + value + '_<XLD_env>_01_ENV' + value_env
+            xld_path_deploymentEnvironment = tempo_XLD_environment_path.replace('<XLD_env>', xld_env).replace('<xld_prefix_env>', xld_prefix_env).replace('<ENV>', xld_directory_env)
+        else:
+            # Default environment path
+            xld_path_deploymentEnvironment = f"Environments/{package_xld}/{xld_prefix_env}{package_xld}_{xld_env}_ENV"
+
+        # Package version variable
+        if hasattr(self, 'parameters') and self.parameters.get('general_info', {}).get('type_template') == 'MULTIPACKAGE_AT_ONCE':
+            version_package = package_value
+        else:
+            version_package = "${" + package_value + "_version}"
+
+        # Deployment package path
+        deployment_package = f"Applications/{package_xld}/{version_package}"
+
+        url = self.url_api_xlr + 'tasks/' + grp_id_xldeploy + '/tasks'
+        try:
+            response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                "id": "null",
+                "type": "xlrelease.CustomScriptTask",
+                "title": 'XLD-Deploy ' + package_xld,
+                "status": "PLANNED",
+                "locked": False,
+                "waitForScheduledStartDate": True,
+                "pythonScript": {
+                    "server": "Configuration/Custom/XLDeploy PFI PROD",
+                    "type": "xldeploy.Deploy",
+                    "continueIfStepFails": False,
+                    "displayStepLogs": True,
+                    "retryCounter": {
+                        "currentContinueRetrial": "0",
+                        "currentPollingTrial": "0"
+                    },
+                    "id": "null",
+                    "username": "${" + phase + "_username_xldeploy}",
+                    "password": '${' + phase + '_password_xldeploy}',
+                    "deploymentPackage": deployment_package,
+                    "deploymentEnvironment": xld_path_deploymentEnvironment,
+                    "overrideDeployedProps": {},
+                    "rollbackOnFailure": False,
+                    "cancelOnError": False,
+                    "failOnPause": False,
+                    "keepPreviousOutputPropertiesOnRetry": False
+                }
+            }, verify=False)
+            response.raise_for_status()
+            if response.content:
+                if 'id' in response.json():
+                    self.logger_cr.info("ON PHASE : " + phase.upper() + " --- Add task : 'XLD-Deploy " + package_xld + "'")
+        except requests.exceptions.RequestException as e:
+            self.logger_error.error("Detail ERROR: ON PHASE : " + phase.upper() + " --- Add task : XLDEPLOY : " + package_xld)
+            self.logger_error.error("File: " + os.path.basename(inspect.currentframe().f_code.co_filename) + " --Class: " + self.__class__.__name__ + " --Function : " + inspect.currentframe().f_code.co_name + " --Line : " + str(inspect.currentframe().f_lineno))
+            self.logger_error.error("Error call api : " + url)
+            self.logger_error.error(str(e))
+            sys.exit(0)
+
+    def add_task_launch_script_windows(self, script_item, phase, index):
+        """
+        Add Windows script launch task.
+
+        Args:
+            script_item (dict): Script configuration
+            phase (str): Phase name
+            index (int): Script index
+
+        Creates task for executing Windows scripts during deployment.
+        """
+        import requests
+
+        if not isinstance(script_item, dict):
+            return
+
+        script_name = list(script_item.keys())[0] if script_item.keys() else f"windows_script_{index}"
+        script_config = script_item.get(script_name, {})
+
+        url = self.url_api_xlr + 'tasks/' + self.dict_template[phase]['xlr_id_phase'] + '/tasks'
+        try:
+            response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                "id": "null",
+                "type": "xlrelease.CustomScriptTask",
+                "title": f'Windows Script: {script_name}',
+                "status": "PLANNED",
+                "locked": False,
+                "waitForScheduledStartDate": True,
+                "pythonScript": {
+                    "server": "Configuration/Custom/Remote Script",
+                    "type": "remoteScript.PowerShell",
+                    "id": "null",
+                    "username": "${" + phase + "_username_windows}",
+                    "password": "${" + phase + "_password_windows}",
+                    "address": script_config.get('server', '${windows_server}'),
+                    "remotePath": script_config.get('path', ''),
+                    "script": script_config.get('script', ''),
+                    "options": script_config.get('options', [])
+                }
+            }, verify=False)
+            response.raise_for_status()
+            if response.content and 'id' in response.json():
+                self.logger_cr.info("ON PHASE : " + phase.upper() + " --- Add task : 'Windows Script: " + script_name + "'")
+        except requests.exceptions.RequestException as e:
+            self.logger_error.error("Error creating Windows script task: " + script_name)
+            self.logger_error.error("Error call api : " + url)
+            self.logger_error.error(str(e))
+
+    def add_task_launch_script_linux(self, script_item, phase, index):
+        """
+        Add Linux script launch task.
+
+        Args:
+            script_item (dict): Script configuration
+            phase (str): Phase name
+            index (int): Script index
+
+        Creates task for executing Linux scripts during deployment.
+        """
+        import requests
+
+        if not isinstance(script_item, dict):
+            return
+
+        script_name = list(script_item.keys())[0] if script_item.keys() else f"linux_script_{index}"
+        script_config = script_item.get(script_name, {})
+
+        url = self.url_api_xlr + 'tasks/' + self.dict_template[phase]['xlr_id_phase'] + '/tasks'
+        try:
+            response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                "id": "null",
+                "type": "xlrelease.CustomScriptTask",
+                "title": f'Linux Script: {script_name}',
+                "status": "PLANNED",
+                "locked": False,
+                "waitForScheduledStartDate": True,
+                "pythonScript": {
+                    "server": "Configuration/Custom/Remote Script",
+                    "type": "remoteScript.Unix",
+                    "id": "null",
+                    "username": "${" + phase + "_username_linux}",
+                    "password": "${" + phase + "_password_linux}",
+                    "address": script_config.get('server', '${linux_server}'),
+                    "remotePath": script_config.get('path', ''),
+                    "script": script_config.get('script', ''),
+                    "options": script_config.get('options', [])
+                }
+            }, verify=False)
+            response.raise_for_status()
+            if response.content and 'id' in response.json():
+                self.logger_cr.info("ON PHASE : " + phase.upper() + " --- Add task : 'Linux Script: " + script_name + "'")
+        except requests.exceptions.RequestException as e:
+            self.logger_error.error("Error creating Linux script task: " + script_name)
+            self.logger_error.error("Error call api : " + url)
+            self.logger_error.error(str(e))
+
+    def add_task_controlm_resource(self, phase, resource_items, precondition):
+        """
+        Add Control-M resource management task.
+
+        Args:
+            phase (str): Phase name
+            resource_items: Resource configuration items
+            precondition (str): Task precondition
+
+        Creates tasks for managing Control-M resources.
+        """
+        import requests
+
+        url = self.url_api_xlr + 'tasks/' + self.dict_template[phase]['xlr_id_phase'] + '/tasks'
+
+        for resource_name, resource_config in resource_items:
+            try:
+                response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                    "id": "null",
+                    "type": "xlrelease.CustomScriptTask",
+                    "title": f'Control-M Resource: {resource_name}',
+                    "status": "PLANNED",
+                    "locked": False,
+                    "waitForScheduledStartDate": True,
+                    "pythonScript": {
+                        "server": "Configuration/Custom/Control-M",
+                        "type": "controlm.ResourceManagement",
+                        "id": "null",
+                        "username": "${" + phase + "_username_controlm}",
+                        "password": "${" + phase + "_password_controlm}",
+                        "resourceName": resource_name,
+                        "resourceConfig": resource_config if isinstance(resource_config, dict) else {}
+                    }
+                }, verify=False)
+                response.raise_for_status()
+                if response.content and 'id' in response.json():
+                    self.logger_cr.info("ON PHASE : " + phase.upper() + " --- Add task : 'Control-M Resource: " + resource_name + "'")
+            except requests.exceptions.RequestException as e:
+                self.logger_error.error("Error creating Control-M resource task: " + resource_name)
+                self.logger_error.error("Error call api : " + url)
+                self.logger_error.error(str(e))
+
+    def add_task_controlm(self, phase, task_key, folder_name, cases, grp_id_controlm):
+        """
+        Add Control-M task for job management.
+
+        Args:
+            phase (str): Phase name
+            task_key (str): Task key identifier
+            folder_name (str): Control-M folder name
+            cases (str): Special cases configuration
+            grp_id_controlm (str): Control-M group task ID
+
+        Creates Control-M job management tasks.
+        """
+        import requests
+
+        url = self.url_api_xlr + 'tasks/' + (grp_id_controlm or self.dict_template[phase]['xlr_id_phase']) + '/tasks'
+
+        operation = 'START'
+        if 'STOP' in task_key:
+            operation = 'STOP'
+        elif 'CLEAN' in task_key:
+            operation = 'CLEAN'
+
+        try:
+            response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                "id": "null",
+                "type": "xlrelease.CustomScriptTask",
+                "title": f'Control-M {operation}: {folder_name}',
+                "status": "PLANNED",
+                "locked": False,
+                "waitForScheduledStartDate": True,
+                "pythonScript": {
+                    "server": "Configuration/Custom/Control-M",
+                    "type": "controlm.JobManagement",
+                    "id": "null",
+                    "username": "${" + phase + "_username_controlm}",
+                    "password": "${" + phase + "_password_controlm}",
+                    "folderName": folder_name,
+                    "operation": operation,
+                    "cases": cases
+                }
+            }, verify=False)
+            response.raise_for_status()
+            if response.content and 'id' in response.json():
+                self.logger_cr.info("ON PHASE : " + phase.upper() + " --- Add task : 'Control-M " + operation + ": " + folder_name + "'")
+        except requests.exceptions.RequestException as e:
+            self.logger_error.error("Error creating Control-M task: " + folder_name)
+            self.logger_error.error("Error call api : " + url)
+            self.logger_error.error(str(e))
+
+    def add_task_controlm_spec_profil(self, phase, spec_config):
+        """
+        Add Control-M specification profile task.
+
+        Args:
+            phase (str): Phase name
+            spec_config (dict): Specification configuration
+
+        Creates Control-M specification profile tasks.
+        """
+        import requests
+
+        url = self.url_api_xlr + 'tasks/' + self.dict_template[phase]['xlr_id_phase'] + '/tasks'
+
+        try:
+            response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                "id": "null",
+                "type": "xlrelease.CustomScriptTask",
+                "title": 'Control-M Spec Profile',
+                "status": "PLANNED",
+                "locked": False,
+                "waitForScheduledStartDate": True,
+                "pythonScript": {
+                    "server": "Configuration/Custom/Control-M",
+                    "type": "controlm.SpecProfile",
+                    "id": "null",
+                    "username": "${" + phase + "_username_controlm}",
+                    "password": "${" + phase + "_password_controlm}",
+                    "profileConfig": spec_config
+                }
+            }, verify=False)
+            response.raise_for_status()
+            if response.content and 'id' in response.json():
+                self.logger_cr.info("ON PHASE : " + phase.upper() + " --- Add task : 'Control-M Spec Profile'")
+        except requests.exceptions.RequestException as e:
+            self.logger_error.error("Error creating Control-M spec profile task")
+            self.logger_error.error("Error call api : " + url)
+            self.logger_error.error(str(e))
+
+    def add_task_xldeploy_get_last_version(self, demandxld, xld_value, phase, grp_id_xldeploy):
+        """
+        Add XLD task to get the latest version of a package.
+
+        Args:
+            demandxld (str): Package demand name
+            xld_value (list): XLD configuration values
+            phase (str): Phase name
+            grp_id_xldeploy (str): XLD group task ID
+
+        Creates XLD task to retrieve the latest version of a package.
+        """
+        import requests
+
+        package_value = demandxld
+        if hasattr(self, 'parameters') and 'template_liste_package' in self.parameters:
+            for package in self.parameters['template_liste_package']:
+                if demandxld in package:
+                    package_value = package
+                    break
+
+        version_package = "${" + demandxld + "_version}"
+        url = self.url_api_xlr + 'tasks/' + grp_id_xldeploy + '/tasks'
+
+        try:
+            response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                "id": "null",
+                "type": "xlrelease.CustomScriptTask",
+                "title": 'XLD-Deploy Search last version : ' + demandxld,
+                "status": "PLANNED",
+                "color": "#00ff00",
+                "variableMapping": {
+                    "pythonScript.packageId": version_package,
+                },
+                "locked": False,
+                "waitForScheduledStartDate": True,
+                "checkAttributes": False,
+                "pythonScript": {
+                    "server": "Configuration/Custom/XLDeploy PFI PROD",
+                    "type": "xld.GetLatestVersion",
+                    "id": "null",
+                    "username": "${" + phase + "_username_xldeploy}",
+                    "password": '${' + phase + '_password_xldeploy}',
+                    "connectionFailureCount": 0,
+                    "applicationId": f"Applications/{demandxld}",
+                    "stripApplications": False,
+                    "throwOnFail": False
+                }
+            }, verify=False)
+            response.raise_for_status()
+            if 'id' in response.json():
+                self.logger_cr.info("ON PHASE : " + phase.upper() + " --- Add task : 'XLD-Deploy Search last version : " + package_value + "'")
+        except requests.exceptions.RequestException as e:
+            self.logger_error.error("Detail ERROR: ON PHASE : " + phase.upper() + " --- Add task : XLDEPLOY : " + package_value + " with title : 'XLD-Deploy Search last version : '" + package_value)
+            self.logger_error.error("File: " + os.path.basename(inspect.currentframe().f_code.co_filename) + " --Class: " + self.__class__.__name__ + " --Function : " + inspect.currentframe().f_code.co_name + " --Line : " + str(inspect.currentframe().f_lineno))
+            self.logger_error.error("Error call api : " + url)
+            self.logger_error.error(str(e))
+            sys.exit(0)
+
+    def XLRSun_check_status_sun_task(self, phase, type_task, technical_task, cat_technicaltask, precondition):
+        """
+        Create task to check status of ServiceNow task until completion.
+
+        Args:
+            phase (str): Phase name
+            type_task (str): Type of SUN task variable name
+            technical_task (str): Technical task identifier
+            cat_technicaltask (str): Category of technical task
+            precondition (str): Task precondition
+
+        Creates XLR task that polls ServiceNow task status until it's closed.
+        """
+        import requests
+
+        typesun_task_number = "${" + type_task + "}"
+
+        # Get task title from configuration
+        title = "Check SUN Task Status"
+        if hasattr(self, 'dict_value_for_template_technical_task'):
+            try:
+                title = self.dict_value_for_template_technical_task['technical_task'][cat_technicaltask][technical_task]['sun_title']
+            except (KeyError, TypeError):
+                title = f"Check SUN Task Status - {technical_task}"
+
+        # Handle precondition for SKIP templates
+        if hasattr(self, 'parameters') and self.parameters.get('general_info', {}).get('type_template') == 'SKIP':
+            try:
+                variable_xlr = self.dict_value_for_template_technical_task['technical_task'][cat_technicaltask][technical_task]['xlr_item_name']
+                precondition = f"'{variable_xlr}' in releaseVariables['{cat_technicaltask}']"
+            except (KeyError, TypeError):
+                precondition = ''
+        else:
+            precondition = ''
+
+        # Create check URL
+        if phase.startswith('CREATE_CHANGE_'):
+            phase_key = phase
+        else:
+            phase_key = 'CREATE_CHANGE_' + phase if phase in ['BENCH', 'PRODUCTION'] else phase
+
+        # Handle phase dict structure
+        if hasattr(self, 'dict_template') and 'template' in self.dict_template and phase_key in self.dict_template:
+            task_release = self.dict_template['template']['xlr_id'] + '/' + self.dict_template[phase_key]['xlr_id_phase']
+        else:
+            # Fallback for when dict_template is not fully initialized
+            task_release = f"template_id/phase_id_{phase}"
+
+        url_check_status = self.url_api_xlr + 'tasks/' + task_release + '/tasks'
+        api_url = f"https://itaas.api.intranatixis.com/support/sun/change/v1/getTasks?id=${{{phase}.sun.id}}&offset=0"
+
+        # Create Jython script for checking SUN task status
+        script_content = (
+            "##check_status_sun_task\n"
+            "import ssl\n"
+            "import base64\n"
+            "import urllib2\n"
+            "import json\n"
+            "import time\n"
+            "context = ssl._create_unverified_context()\n"
+            "def call_api():\n"
+            f"   api_url = '{api_url}'\n"
+            "   password = release.passwordVariableValues['$' + '{ops_password_api}']\n"
+            "   login = '${ops_username_api}'\n"
+            "   auth_header = 'Basic ' + base64.b64encode(login + ':' + password)\n"
+            "   request = urllib2.Request(api_url)\n"
+            "   request.add_header('Authorization', auth_header)\n"
+            "   response = urllib2.urlopen(request, context=context)\n"
+            "   data = json.loads(response.read())\n"
+            "   return data\n"
+            "while True:\n"
+            "    result = call_api()\n"
+            f"    state = next(task['state'] for task in result['Data'] if task['number'] == '{typesun_task_number}')\n"
+            f"    print('Task Sun State:' + state + ' from Change: ${{{phase}.sun.id}}')\n"
+            "    if state == 'Closed':\n"
+            f"        print('Task Sun State:' + state + ' from Change: ${{{phase}.sun.id}}')\n"
+            "        break\n"
+            "    time.sleep(300)\n"
+        )
+
+        try:
+            response = requests.post(url_check_status, headers=self.header,
+                                   auth=(self.ops_username_api, self.ops_password_api),
+                                   json={
+                "id": "null",
+                "type": "xlrelease.ScriptTask",
+                "locked": False,
+                "title": title,
+                "script": script_content
+            }, verify=False)
+            response.raise_for_status()
+
+            if response.content and 'id' in response.json():
+                if hasattr(self, 'parameters') and self.parameters.get('general_info', {}).get('type_template') == 'SKIP':
+                    self.logger_cr.info("ON PHASE : " + phase + " --- Add task : 'Check status - " + title + "' with precondition : " + precondition)
+                else:
+                    self.logger_cr.info("ON PHASE : " + phase + " --- Add task : 'Check status - " + title + "'")
+
+        except requests.exceptions.RequestException as e:
+            self.logger_error.error("Detail ERROR: ON PHASE : " + phase + " --- Add task : Check status - " + title)
+            self.logger_error.error("File: " + os.path.basename(inspect.currentframe().f_code.co_filename) + " --Class: " + self.__class__.__name__ + " --Function : " + inspect.currentframe().f_code.co_name + " --Line : " + str(inspect.currentframe().f_lineno))
+            self.logger_error.error("Error call api : " + url_check_status)
+            self.logger_error.error(str(e))
+            sys.exit(0)
+
+    def XLRSun_task_close_sun_task(self, task_to_close, title, id_task, type_task, phase):
+        """
+        Create task to close ServiceNow task associated with deployment.
+
+        Args:
+            task_to_close (str): ServiceNow task number to close
+            title (str): Task title
+            id_task (str): Parent XLR task ID
+            type_task (str): Type of task (xldeploy, task_ops, etc.)
+            phase (str): Phase name
+
+        Creates XLR task that closes the corresponding ServiceNow task when deployment is complete.
+        """
+        import requests
+
+        if 'xldeploy' in type_task:
+            # Close task for XLD deployment
+            try:
+                response = requests.post(self.url_api_xlr + 'tasks/' + id_task + '/tasks',
+                                       headers=self.header,
+                                       auth=(self.ops_username_api, self.ops_password_api),
+                                       json={
+                    "id": "null",
+                    "type": "xlrelease.CustomScriptTask",
+                    "title": "Close SUN task for XLD deployment",
+                    "owner": "${release.owner}",
+                    "locked": False,
+                    "status": "PLANNED",
+                    "pythonScript": {
+                        "type": "servicenowNxs.UpdateTask",
+                        "id": "null",
+                        "servicenowNxsServer": "Configuration/Custom/Sun Prod",
+                        "taskNumber": task_to_close,
+                        "status": "Close complete",
+                        "closeNotes": "XLD deployment completed successfully",
+                        "updateAs": "${change_user_assign}"
+                    }
+                }, verify=False)
+                response.raise_for_status()
+
+                if response.content and 'id' in response.json():
+                    self.logger_cr.info("ON PHASE : " + phase.upper() + " --- Add task : SUN closing for XLD task")
+
+            except requests.exceptions.RequestException as e:
+                self.logger_error.error("Detail ERROR: ON PHASE : " + phase.upper() + " --- Add task : SUN closing for XLD task")
+                self.logger_error.error("File: " + os.path.basename(inspect.currentframe().f_code.co_filename) + " --Class: " + self.__class__.__name__ + " --Function : " + inspect.currentframe().f_code.co_name + " --Line : " + str(inspect.currentframe().f_lineno))
+                self.logger_error.error("Error call api : " + self.url_api_xlr + 'tasks/' + id_task + '/tasks')
+                self.logger_error.error(str(e))
+                sys.exit(0)
+        else:
+            # Close task for other operations (OPS tasks, etc.)
+            try:
+                response = requests.post(self.url_api_xlr + 'tasks/' + id_task + '/tasks',
+                                       headers=self.header,
+                                       auth=(self.ops_username_api, self.ops_password_api),
+                                       json={
+                    "id": "null",
+                    "type": "xlrelease.CustomScriptTask",
+                    "title": "Close task " + title,
+                    "owner": "${release.owner}",
+                    "locked": True,
+                    "status": "PLANNED",
+                    "pythonScript": {
+                        "type": "servicenowNxs.UpdateTask",
+                        "id": "null",
+                        "servicenowNxsServer": "Configuration/Custom/Sun Prod",
+                        "taskNumber": task_to_close,
+                        "status": "Close complete",
+                        "closeNotes": "Task completed successfully",
+                        "updateAs": "${change_user_assign}"
+                    }
+                }, verify=False)
+                response.raise_for_status()
+
+                if response.content and 'id' in response.json():
+                    self.logger_cr.info("ON PHASE : " + phase.upper() + " --- Add task : Close task " + title)
+
+            except requests.exceptions.RequestException as e:
+                self.logger_error.error("Detail ERROR: ON PHASE : " + phase.upper() + " --- Add task : Close task " + title)
+                self.logger_error.error("File: " + os.path.basename(inspect.currentframe().f_code.co_filename) + " --Class: " + self.__class__.__name__ + " --Function : " + inspect.currentframe().f_code.co_name + " --Line : " + str(inspect.currentframe().f_lineno))
+                self.logger_error.error("Error call api : " + self.url_api_xlr + 'tasks/' + id_task + '/tasks')
+                self.logger_error.error(str(e))
+                sys.exit(0)

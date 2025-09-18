@@ -122,7 +122,7 @@ class XLRTaskScript(XLRBase):
         branch_name = releaseVariables.get('branch_name', '')
 
         # Pattern to extract version: feature/v1.2.3 -> 1.2.3
-        version_pattern = r'[vV]?(\d+\.\d+\.\d+)'
+        version_pattern = r'[vV]?(\\d+\\.\\d+\\.\\d+)'
         match = re.search(version_pattern, branch_name)
 
         if match:

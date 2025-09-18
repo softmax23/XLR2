@@ -266,6 +266,186 @@ class XLRSun(XLRBase):
 
         self.logger_cr.info("SUN parameters configured for phase: " + phase)
 
+    def add_phase_sun(self, phase):
+        """
+        Add a ServiceNow change creation phase to the template.
+
+        Args:
+            phase (str): Phase name (BENCH, PRODUCTION)
+
+        Creates a new phase in the XLR template specifically for ServiceNow
+        change request creation and management.
+        """
+        import requests
+
+        url = self.url_api_xlr + 'phases/' + self.dict_template['template']['xlr_id'] + '/phase'
+        try:
+            response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                "id": None,
+                "type": "xlrelease.Phase",
+                "flagStatus": "OK",
+                "title": "CREATE_CHANGE_" + phase,
+                "status": "PLANNED",
+                "color": "#00FF00"
+            }, verify=False)
+            response.raise_for_status()
+
+            if response.content:
+                if 'id' in response.json():
+                    self.logger_cr.info("------------------------------------------")
+                    self.logger_cr.info("ADD PHASE : CREATE_CHANGE_" + phase.upper())
+                    self.logger_cr.info("------------------------------------------")
+                    self.dict_template['CREATE_CHANGE_' + phase] = {'xlr_id_phase': response.json()["id"]}
+                else:
+                    if hasattr(self, 'logger_error'):
+                        self.logger_error.error("ERROR on ADD PHASE : CREATE_CHANGE_" + phase.upper())
+                    raise Exception(f"Failed to create phase CREATE_CHANGE_{phase}")
+
+        except requests.exceptions.RequestException as e:
+            if hasattr(self, 'logger_error'):
+                self.logger_error.error(f"Detail ERROR: on ADD PHASE : CREATE_CHANGE_{phase.upper()}")
+                self.logger_error.error(f"Error call api : {url}")
+                self.logger_error.error(str(e))
+            raise
+
+        return self.dict_template
+
+    def add_task_date_for_sun_change(self, phase):
+        """
+        Add date input tasks for ServiceNow change scheduling.
+
+        Args:
+            phase (str): Phase name
+
+        Returns:
+            tuple: (updated dict_template, variables_date_sun list)
+
+        Creates user input tasks for start and end dates required
+        for ServiceNow change request scheduling.
+        """
+        import requests
+
+        variables_date_sun = []
+        list_key_date_sun = []
+
+        # Create date variables
+        for value in [phase + '_sun_start_date', phase + '_sun_end_date']:
+            self.template_create_variable(value, 'DateVariable', value, '', None, False, False, False)
+        for value in [phase + '_sun_start_format', phase + '_sun_end_format']:
+            self.template_create_variable(value, 'StringVariable', value, '', '', False, False, False)
+
+        # Collect variables for user input task
+        if hasattr(self, 'dict_template') and 'variables' in self.dict_template:
+            for value in self.dict_template['variables']:
+                if list(value.keys())[0] == phase + '_sun_end_date':
+                    variables_date_sun.append(value[phase + '_sun_end_date'])
+                    list_key_date_sun.append(list(value.keys())[0])
+                elif list(value.keys())[0] == phase + '_sun_start_date':
+                    variables_date_sun.append(value[phase + '_sun_start_date'])
+                    list_key_date_sun.append(list(value.keys())[0])
+
+        # Create user input task for dates
+        url = self.url_api_xlr + 'tasks/' + self.dict_template['CREATE_CHANGE_' + phase]['xlr_id_phase'] + '/tasks'
+        try:
+            variables_date_sun.sort(key=lambda x: x != phase + '_sun_start_date')
+            response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                "id": "null",
+                "type": "xlrelease.UserInputTask",
+                "title": "Please enter dates for ServiceNow change - " + phase,
+                "status": "PLANNED",
+                "variables": variables_date_sun
+            }, verify=False)
+            response.raise_for_status()
+
+            if hasattr(self, 'logger_cr'):
+                self.logger_cr.info(f"CREATE DATE INPUT TASK for ServiceNow change - phase {phase}")
+
+        except requests.exceptions.RequestException as e:
+            if hasattr(self, 'logger_error'):
+                self.logger_error.error(f"Error creating date input task: {e}")
+            raise
+
+        return self.dict_template, variables_date_sun
+
+    def change_wait_state(self, phase, state):
+        """
+        Create a wait task for ServiceNow change approval state.
+
+        Args:
+            phase (str): Phase name
+            state (str): State to wait for (WaitForInitialChangeApproval, etc.)
+
+        Creates a wait task that pauses deployment until the ServiceNow
+        change request reaches the specified approval state.
+        """
+        import requests
+
+        # Determine URL based on state type
+        if state in ['Assess', 'WaitForInitialChangeApproval', 'Initial validation']:
+            url = self.url_api_xlr + 'tasks/' + self.dict_template['CREATE_CHANGE_' + phase]['xlr_id_phase'] + '/tasks'
+        elif state in ['Implement', 'Scheduled']:
+            url = self.url_api_xlr + 'tasks/' + self.dict_template[phase]['xlr_id_phase'] + '/tasks'
+        else:
+            # Default to CREATE_CHANGE phase
+            url = self.url_api_xlr + 'tasks/' + self.dict_template['CREATE_CHANGE_' + phase]['xlr_id_phase'] + '/tasks'
+
+        try:
+            response = requests.post(url, headers=self.header, auth=(self.ops_username_api, self.ops_password_api), json={
+                "id": None,
+                "type": "xlrelease.CustomScriptTask",
+                "title": f"wait state SUN {phase} APPROVAL CHG: ${{{phase}.sun.id}}",
+                "owner": "${release.owner}",
+                "flagStatus": "OK",
+                "dueSoonNotified": False,
+                "waitForScheduledStartDate": True,
+                "delayDuringBlackout": False,
+                "postponedDueToBlackout": False,
+                "postponedUntilEnvironmentsAreReserved": False,
+                "hasBeenFlagged": False,
+                "hasBeenDelayed": False,
+                "taskFailureHandlerEnabled": False,
+                "failuresCount": 0,
+                "variableMapping": {},
+                "externalVariableMapping": {},
+                "tags": [],
+                "checkAttributes": False,
+                "overdueNotified": False,
+                "status": "PLANNED",
+                "locked": False,
+                "pythonScript": {
+                    "type": "servicenowNxs.WaitForInitialChangeApproval",
+                    "id": None,
+                    "servicenowNxsServer": "Configuration/Custom/Sun Prod",
+                    "changeNumber": f"${{{phase}.sun.id}}",
+                    "interval": 1
+                },
+            }, verify=False)
+            response.raise_for_status()
+
+            if response.content:
+                if 'id' in response.json():
+                    # Handle special template types
+                    if (hasattr(self, 'parameters') and
+                        self.parameters.get('general_info', {}).get('type_template') == 'SKIP'):
+                        # Skip some processing for SKIP template type
+                        pass
+
+                    if hasattr(self, 'logger_cr'):
+                        self.logger_cr.info(f"ON PHASE : {phase} --- Create wait state task for: '{state}'")
+                else:
+                    if hasattr(self, 'logger_error'):
+                        self.logger_error.error(f"ERROR creating wait state task for: {state}")
+                    raise Exception(f"Failed to create wait state task for {state}")
+
+        except requests.exceptions.RequestException as e:
+            if hasattr(self, 'logger_error'):
+                self.logger_error.error(f"Detail ERROR: ON PHASE : CREATE_CHANGE_{phase.upper()} --- Add SUN wait task : '{state}'")
+                self.logger_error.error(f"Error call api : {url}")
+                self.logger_error.error(str(e))
+            raise
+
+        return self.dict_template
+
     def sun_create_inc(self, name_phase, state, env, task, spec):
         """
         Create ServiceNow incident/change request.
