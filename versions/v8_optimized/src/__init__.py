@@ -1,1 +1,0 @@
-"""XLR V8 Optimized - Source Package"""
